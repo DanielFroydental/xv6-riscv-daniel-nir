@@ -10,8 +10,15 @@ uint64
 sys_exit(void)
 {
   int n;
+  char msg[32];
+
   argint(0, &n);
-  exit(n);
+  // Get exit message from user space
+  if(argstr(1, msg, sizeof(msg)) < 0) {
+    // If user didn't provide a message or there was an error, use empty string
+    msg[0] = '\0';
+  }
+  exit(n, msg);
   return 0;  // not reached
 }
 
@@ -30,9 +37,12 @@ sys_fork(void)
 uint64
 sys_wait(void)
 {
-  uint64 p;
-  argaddr(0, &p);
-  return wait(p);
+  uint64 stat_addr;
+  uint64 msg_addr;
+  
+  argaddr(0, &stat_addr);
+  argaddr(1, &msg_addr);
+  return wait(stat_addr, msg_addr);
 }
 
 uint64

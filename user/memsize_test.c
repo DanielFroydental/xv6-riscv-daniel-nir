@@ -28,5 +28,5 @@ main(void)
     after_free = memsize();
     printf("Memory usage after free: %d bytes\n", after_free);
 
-    exit(0);
+    exit(0, "");
 }
