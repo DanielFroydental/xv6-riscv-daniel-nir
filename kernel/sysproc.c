@@ -107,3 +107,27 @@ sys_memsize(void) {
   uint64 memsize = p->sz;
   return memsize;
 }
+
+uint64
+sys_forkn(void)
+{
+  int n;
+  uint64 pids_addr;
+
+  argint(0, &n);
+  argaddr(1, &pids_addr);
+  // cast the user pointer before passing to forkn
+  return forkn(n, (int*)pids_addr);
+}
+
+uint64
+sys_waitall(void)
+{
+  uint64 n_addr;
+  uint64 statuses_addr;
+
+  argaddr(0, &n_addr);
+  argaddr(1, &statuses_addr);
+  // cast both user pointers before passing to waitall
+  return waitall((int*)n_addr, (int*)statuses_addr);
+}
