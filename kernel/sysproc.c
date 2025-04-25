@@ -10,8 +10,15 @@ uint64
 sys_exit(void)
 {
   int n;
+  char msg[32];
+
   argint(0, &n);
-  exit(n);
+  // Get exit message from user space
+  if(argstr(1, msg, sizeof(msg)) < 0) {
+    // If user didn't provide a message or there was an error, use empty string
+    msg[0] = '\0';
+  }
+  exit(n, msg);
   return 0;  // not reached
 }
 
@@ -30,9 +37,12 @@ sys_fork(void)
 uint64
 sys_wait(void)
 {
-  uint64 p;
-  argaddr(0, &p);
-  return wait(p);
+  uint64 stat_addr;
+  uint64 msg_addr;
+  
+  argaddr(0, &stat_addr);
+  argaddr(1, &msg_addr);
+  return wait(stat_addr, msg_addr);
 }
 
 uint64
@@ -88,4 +98,36 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// Task 2 memsize
+uint64
+sys_memsize(void) {
+  struct proc *p = myproc();
+  uint64 memsize = p->sz;
+  return memsize;
+}
+
+uint64
+sys_forkn(void)
+{
+  int n;
+  uint64 pids_addr;
+
+  argint(0, &n);
+  argaddr(1, &pids_addr);
+  // cast the user pointer before passing to forkn
+  return forkn(n, (int*)pids_addr);
+}
+
+uint64
+sys_waitall(void)
+{
+  uint64 n_addr;
+  uint64 statuses_addr;
+
+  argaddr(0, &n_addr);
+  argaddr(1, &statuses_addr);
+  // cast both user pointers before passing to waitall
+  return waitall((int*)n_addr, (int*)statuses_addr);
 }
