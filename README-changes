@@ -1,0 +1,156 @@
+Excellent! The Peterson lock implementation is working successfully. Let me provide a comprehensive overview of all the changes made and verify they match the assignment requirements precisely.
+
+## Overview of All Changes Made
+
+### 1. **Peterson Lock Header File** (peterson.h)
+```c
+#define NPETERSON 16  // maximum number of Peterson locks (exceeds required 15)
+
+struct petersonlock {
+  int valid;           // Is this lock slot valid/allocated?
+  volatile int turn;   // Whose turn is it? (0 or 1)
+  volatile int flag[2]; // Process intentions: flag[i] = 1 means process i wants to enter
+  
+  // For debugging:
+  char *name;          // Name of lock
+  int holder;          // Process currently holding the lock (-1 if none)
+};
+```
+✅ **Matches requirement**: Global array of at least 15 locks (we have 16)
+
+### 2. **Peterson Lock Implementation** (peterson.c)
+
+**Key Features Implemented:**
+- ✅ **Global lock array initialization** at kernel boot time
+- ✅ **peterson_create()**: Returns unique lock ID or -1 on failure
+- ✅ **peterson_acquire()**: Uses yield() instead of busy-waiting
+- ✅ **peterson_release()**: Properly releases the lock
+- ✅ **peterson_destroy()**: Invalidates lock ID
+- ✅ **Atomic operations**: Uses `__sync_lock_test_and_set()`, `__sync_lock_release()`, and `__sync_synchronize()`
+
+**Critical Algorithm Implementation:**
+```c
+// Peterson's algorithm with yield() instead of busy waiting
+__sync_lock_test_and_set(&lock->flag[role], 1);
+__sync_synchronize();
+
+__sync_lock_test_and_set(&lock->turn, other);
+__sync_synchronize();
+
+while(lock->flag[other] && lock->turn == other) {
+  __sync_synchronize();
+  yield(); // Give up CPU instead of spinning
+}
+```
+✅ **Matches requirement**: Uses yield() instead of busy-waiting and includes memory barriers
+
+### 3. **System Call Infrastructure**
+
+**System Call Numbers** (syscall.h):
+```c
+#define SYS_peterson_create   22
+#define SYS_peterson_acquire  23
+#define SYS_peterson_release  24
+#define SYS_peterson_destroy  25
+```
+
+**System Call Implementations** (sysproc.c):
+- ✅ All four required system calls implemented
+- ✅ Proper argument parsing using `argint()`
+- ✅ Correct return value handling
+
+**System Call Registration** (syscall.c):
+- ✅ Function declarations added
+- ✅ System call array mappings added
+
+### 4. **User-Space Interface**
+
+**User Header** (user.h):
+```c
+int peterson_create(void);
+int peterson_acquire(int, int);
+int peterson_release(int, int);
+int peterson_destroy(int);
+```
+
+**System Call Stubs** (usys.pl):
+- ✅ All four Peterson lock system calls added
+
+### 5. **Kernel Integration**
+
+**Initialization** (main.c):
+```c
+peterson_init(); // peterson locks
+```
+✅ **Matches requirement**: Initialize lock array at kernel boot time
+
+**Function Declarations** (defs.h):
+- ✅ All Peterson lock functions declared
+
+**Build System** (Makefile):
+- ✅ `peterson.o` added to kernel objects
+- ✅ `petersontest` added to user programs
+
+### 6. **Test Program** (petersontest.c)
+
+**Demonstrates the exact usage pattern from assignment:**
+```c
+int lock_id = peterson_create();
+int fork_ret = fork();
+int role = fork_ret > 0 ? 0 : 1;
+
+for (int i = 0; i < 10; i++) {
+    peterson_acquire(lock_id, role);
+    // Critical section
+    printf("%s process in critical section (iteration %d)\n", process_name, i);
+    peterson_release(lock_id, role);
+}
+
+if (fork_ret > 0) {
+    wait(0);
+    peterson_destroy(lock_id);
+}
+```
+✅ **Matches assignment example** almost exactly
+
+## Verification Against Assignment Requirements
+
+### ✅ **Required System Calls**:
+1. `int peterson_create(void)` - Creates new lock, returns unique ID or -1
+2. `int peterson_acquire(int lock_id, int role)` - Acquires lock with yield()
+3. `int peterson_release(int lock_id, int role)` - Releases lock
+4. `int peterson_destroy(int lock_id)` - Deletes lock
+
+### ✅ **Required Modifications from Classic Peterson's Algorithm**:
+1. **Uses yield() instead of busy-waiting** ✅
+2. **Uses memory barriers and atomic operations** ✅
+   - `__sync_lock_test_and_set()`
+   - `__sync_lock_release()`
+   - `__sync_synchronize()`
+
+### ✅ **Implementation Requirements**:
+1. **Kernel-side struct for Peterson locks** ✅ (inspired by sleeplock/spinlock)
+2. **Global array of at least 15 locks** ✅ (we have 16)
+3. **Initialize at kernel boot time** ✅ (similar to proc[] array)
+4. **Proper atomic operations** ✅
+
+### ✅ **Test Results**:
+The test program successfully demonstrated:
+- Lock creation
+- Two processes (parent/child) alternating in critical section
+- Proper mutual exclusion (no interleaved output)
+- Lock destruction
+- "Peterson lock test completed successfully!" message
+
+## Summary
+
+The implementation is **complete and correct**. All assignment requirements have been met:
+
+1. ✅ Four system calls implemented with proper signatures
+2. ✅ Peterson's algorithm correctly implemented with yield() and atomic operations
+3. ✅ Global lock array with proper initialization
+4. ✅ Complete integration with xv6 kernel
+5. ✅ Working test program that demonstrates mutual exclusion
+6. ✅ No compilation errors or runtime issues
+
+The implementation successfully provides a new synchronization mechanism for xv6 that allows two processes to coordinate access to critical sections using Peterson's algorithm, with the modifications specified in the assignment (yield() instead of busy-waiting and proper atomic operations/memory barriers).
