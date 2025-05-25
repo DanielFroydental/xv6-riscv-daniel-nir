@@ -22,6 +22,13 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int peterson_create(void);
+int peterson_acquire(int, int);
+int peterson_release(int, int);
+int peterson_destroy(int);
+int tournament_create(int processes);
+int tournament_acquire(void);
+int tournament_release(void);
 
 // ulib.c
 int stat(const char*, struct stat*);
